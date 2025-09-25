@@ -1,47 +1,12 @@
-import Hotel  # Capa de negocio (valida, calcula y orquesta llamadas a hotel_db)
 from pathlib import Path
-from tkinter import Tk, Canvas, Entry, Button, PhotoImage, messagebox, ttk
-import re
-from datetime import datetime
+from tkinter import Tk, Canvas, Entry, Button, PhotoImage
+from tkinter import ttk  # Para Combobox
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\Usua\OneDrive\Desktop\Proyecto Mayan Sunset\gui_mayan_sunset\build\assets\frame0")
 
 def relative_to_assets(path: str) -> Path:
     return ASSETS_PATH / Path(path)
-
-#Inicializar base de datos
-Hotel.inicializar_sistema()
-
-# =========================
-# Validaciones de entrada
-# =========================
-
-# Solo dígitos
-def validar_numerico(char):
-    return char.isdigit()
-
-# Solo letras y espacios
-def validar_texto(char):
-    return char.isalpha() or char.isspace()
-
-# Solo dígitos y guion (para fechas)
-def validar_fecha_caracter(char):
-    return char.isdigit() or char == "-"
-
-# Validación de formato completo de fecha (YYYY-MM-DD)
-def validar_formato_fecha(entry_widget):
-    valor = entry_widget.get().strip()
-    if not valor:
-        return False
-    patron = r"^\d{4}-\d{2}-\d{2}$"
-    if not re.match(patron, valor):
-        return False
-    try:
-        datetime.strptime(valor, "%Y-%m-%d")
-        return True
-    except ValueError:
-        return False
 
 # =========================
 # Ventana principal
@@ -51,16 +16,6 @@ window.title("Mayan Sunset - Creación de Reservas")
 window.geometry("1200x1000")
 window.configure(bg="#FFFFFF")
 window.resizable(True, True)  # Ajustable
-
-# =========================
-# Configuración de validaciones
-# =========================
-
-# Registrar validadores en la ventana principal
-vcmd_num = window.register(validar_numerico)
-vcmd_texto = window.register(validar_texto)
-vcmd_fecha = window.register(validar_fecha_caracter)
-
 
 # =========================
 # Scrollbar + Canvas contenedor
@@ -172,56 +127,6 @@ combo_tipo_habitacion = ttk.Combobox(
     values=[],  # Se llenará desde Hotel.py
     state="readonly",
 )
-
-# Variable interna para almacenar el precio por noche actual
-precio_noche_actual = None
-
-def cargar_tipos_habitacion():
-    global precio_noche_actual
-    tipos = Hotel.obtener_tipos_habitacion()
-    combo_tipo_habitacion["values"] = tipos
-    if tipos:
-        combo_tipo_habitacion.current(0)
-        # Inicializa el precio_noche_actual con el primer tipo
-        precio_noche_actual = Hotel.obtener_precio_por_tipo(tipos[0])
-        calcular_total()
-
-def actualizar_precio_noche(event=None):
-    global precio_noche_actual
-    tipo = combo_tipo_habitacion.get()
-    if not tipo:
-        return
-    precio_noche_actual = Hotel.obtener_precio_por_tipo(tipo)
-    calcular_total()
-
-def calcular_total(event=None):
-    global precio_noche_actual
-    fecha_ingreso = entry_6.get()   # Fecha de ingreso
-    fecha_salida = entry_5.get()    # Fecha de salida
-    noches = Hotel.calcular_noches(fecha_ingreso, fecha_salida)
-
-    entry_1.config(state="normal")  # entry_1 = Precio Total
-    entry_1.delete(0, "end")
-
-    if noches is None:
-        entry_1.insert(0, "Fechas inválidas")
-        entry_1.config(state="readonly")
-        return
-
-    if precio_noche_actual is None:
-        # Si aún no se ha definido, intenta obtenerlo del tipo actual
-        tipo = combo_tipo_habitacion.get()
-        if tipo:
-            precio_noche_actual = Hotel.obtener_precio_por_tipo(tipo)
-
-    if precio_noche_actual is None:
-        entry_1.insert(0, "")
-    else:
-        total = noches * precio_noche_actual
-        entry_1.insert(0, f"{total:.2f}")
-
-    entry_1.config(state="readonly")
-
 combo_tipo_habitacion.place(
     x=642.0,
     y=692.0,
@@ -259,11 +164,6 @@ entry_3.place(
     width=225.0,
     height=33.0
 )
-
-entry_3.config(
-    validate="key",
-    validatecommand=(vcmd_num, "%S")
-)   # Validación de restricción ID Habitación
 
 # Label Estado
 inner_canvas.create_text(
@@ -314,11 +214,6 @@ entry_5.place(
     width=225.0,
     height=33.0
 )
-
-entry_5.config(
-    validate="key",
-    validatecommand=(vcmd_fecha, "%S")
-)   # Validación de restricción de campo Fecha salida
 
 # Label Fecha de Ingreso
 inner_canvas.create_text(
@@ -371,11 +266,6 @@ entry_6.place(
     height=33.0
 )
 
-entry_6.config(
-    validate="key",
-    validatecommand=(vcmd_fecha, "%S")
-)   # Validación de restricción de campo Fecha ingreso
-
 # entry_7 -> NIT
 entry_image_7 = PhotoImage(file=relative_to_assets("entry_7.png"))
 entry_bg_7 = inner_canvas.create_image(
@@ -396,11 +286,6 @@ entry_7.place(
     width=225.0,
     height=33.0
 )
-
-entry_7.config(
-    validate="key",
-    validatecommand=(vcmd_num, "%S")
-)   # Validación de restricción del campo NIT
 
 # Label NIT
 inner_canvas.create_text(
@@ -443,11 +328,6 @@ entry_8.place(
     height=33.0
 )
 
-entry_8.config(
-    validate="key",
-    validatecommand=(vcmd_num, "%S")
-)   # Validación de restricción de campo de DPI
-
 # entry_9 -> 2do Apellido
 entry_image_9 = PhotoImage(file=relative_to_assets("entry_9.png"))
 entry_bg_9 = inner_canvas.create_image(
@@ -468,11 +348,6 @@ entry_9.place(
     width=225.0,
     height=33.0
 )
-
-entry_9.config(
-    validate="key",
-    validatecommand=(vcmd_texto, "%S")
-)   # Validación de restricción de campo Segundo apellido
 
 # Label 2do Apellido
 inner_canvas.create_text(
@@ -515,11 +390,6 @@ entry_10.place(
     height=33.0
 )
 
-entry_10.config(
-    validate="key",
-    validatecommand=(vcmd_texto, "%S")
-)  # Validación de restricción de campo Primer apellido
-
 # entry_11 -> 2do Nombre
 entry_image_11 = PhotoImage(file=relative_to_assets("entry_11.png"))
 entry_bg_11 = inner_canvas.create_image(
@@ -540,12 +410,6 @@ entry_11.place(
     width=225.0,
     height=33.0
 )
-
-entry_11.config(
-    validate="key",
-    validatecommand=(vcmd_texto, "%S")
-)  # Validación de restricción de campo de Segundo nombre
-
 
 # Label 2do Nombre
 inner_canvas.create_text(
@@ -608,11 +472,6 @@ entry_12.place(
     height=33.0
 )
 
-entry_12.config(
-    validate="key",
-    validatecommand=(vcmd_texto, "%S")
-)  # Validación de restricción del campo de Primer nombre
-
 # Imagen decorativa izquierda
 image_image_1 = PhotoImage(file=relative_to_assets("image_1.png"))
 image_1 = inner_canvas.create_image(
@@ -620,78 +479,6 @@ image_1 = inner_canvas.create_image(
     500.0,
     image=image_image_1
 )
-
-combo_tipo_habitacion.bind("<<ComboboxSelected>>", actualizar_precio_noche)
-entry_6.bind("<FocusOut>", calcular_total)  # Fecha ingreso
-entry_5.bind("<FocusOut>", calcular_total)  # Fecha salida
-
-# Inicializar combobox con datos desde Hotel.py
-Hotel.inicializar_sistema()
-cargar_tipos_habitacion()
-
-# =========================
-# Validación final en guardar_reserva
-# =========================
-
-def guardar_reserva():
-    id_habitacion = entry_3.get().strip()
-    tipo = combo_tipo_habitacion.get().strip()
-    fecha_ingreso = entry_6.get().strip()
-    fecha_salida = entry_5.get().strip()
-    dpi = entry_8.get().strip()
-    nit = entry_7.get().strip()
-    primer_nombre = entry_12.get().strip()
-    segundo_nombre = entry_11.get().strip()
-    primer_apellido = entry_10.get().strip()
-    segundo_apellido = entry_9.get().strip()
-    precio_total = entry_1.get().strip()
-
-    # Validaciones
-    if not id_habitacion.isdigit():
-        messagebox.showerror("Error", "El ID de habitación debe ser numérico.")
-        return
-    if not tipo:
-        messagebox.showerror("Error", "Debe seleccionar un tipo de habitación.")
-        return
-    if not validar_formato_fecha(entry_6) or not validar_formato_fecha(entry_5):
-        messagebox.showerror("Error", "Las fechas deben estar en formato YYYY-MM-DD válido.")
-        return
-    if "inválidas" in precio_total.lower() or not precio_total:
-        messagebox.showerror("Error", "Las fechas son inválidas o falta calcular el total.")
-        return
-    if not dpi or len(dpi) < 8:
-        messagebox.showerror("Error", "Debe ingresar un DPI válido.")
-        return
-    if not primer_nombre or not primer_apellido:
-        messagebox.showerror("Error", "Debe ingresar al menos primer nombre y primer apellido.")
-        return
-
-    # Preparar datos para la capa de negocio
-    datos = {
-        "id_huesped": 1,  # 🔹 Ajustar cuando tengas gestión de huéspedes
-        "id_habitacion": int(id_habitacion),
-        "tipo": tipo,
-        "fecha_ingreso": fecha_ingreso,
-        "fecha_salida": fecha_salida
-    }
-
-    exito, mensaje = Hotel.crear_reserva(datos)
-
-    if exito:
-        resumen = (
-            f"Reserva creada con éxito:\n\n"
-            f"Habitación ID: {id_habitacion}\n"
-            f"Tipo: {tipo}\n"
-            f"Fecha ingreso: {fecha_ingreso}\n"
-            f"Fecha salida: {fecha_salida}\n"
-            f"Huésped: {primer_nombre} {segundo_nombre} {primer_apellido} {segundo_apellido}\n"
-            f"DPI: {dpi}\n"
-            f"NIT: {nit}\n"
-            f"Total: Q{precio_total}"
-        )
-        messagebox.showinfo("Reserva Exitosa", resumen)
-    else:
-        messagebox.showerror("Error", mensaje)
 
 # Botón 1 (Guardar)
 button_image_1 = PhotoImage(file=relative_to_assets("button_1.png"))
@@ -720,8 +507,6 @@ def button_1_leave(e):
 
 button_1.bind('<Enter>', button_1_hover)
 button_1.bind('<Leave>', button_1_leave)
-
-button_1.config(command=guardar_reserva)
 
 # Botón 2 (Cancelar)
 button_image_2 = PhotoImage(file=relative_to_assets("button_2.png"))
