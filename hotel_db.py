@@ -195,15 +195,22 @@ def insert_huesped(nombre, apellido, dpi, nit):
     conn.commit()
     conn.close()
 
-def insert_reserva(id_huesped, id_habitacion, fecha_ingreso, fecha_salida, total):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO reserva (id_huesped, id_habitacion, fecha_ingreso, fecha_salida, total) VALUES (?, ?, ?, ?, ?);",
-        (id_huesped, id_habitacion, fecha_ingreso, fecha_salida, total)
-    )
+def insert_reserva(conn, id_habitacion: int, dpi: str, nit: str,
+                     primer_nombre: str, segundo_nombre: str,
+                     primer_apellido: str, segundo_apellido: str,
+                     fecha_inicio: str, fecha_fin: str):
+    """
+    Inserta una reserva y retorna el id generado.
+    """
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO reserva (id_habitacion, dpi, nit, primer_nombre, segundo_nombre,
+                             primer_apellido, segundo_apellido, fecha_inicio, fecha_fin)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (id_habitacion, dpi, nit, primer_nombre, segundo_nombre,
+          primer_apellido, segundo_apellido, fecha_inicio, fecha_fin))
     conn.commit()
-    conn.close()
+    return cur.lastrowid
 
 # =========================
 # Funciones de consulta
@@ -232,18 +239,43 @@ def get_estado_habitacion(id_habitacion):
     conn.close()
     return row[0] if row else None
 
-def validar_disponibilidad(id_habitacion, fecha_ingreso, fecha_salida):
+def get_habitacion_por_numero(conn, numero_habitacion: str):
     """
-    Retorna True si la habitación está disponible en el rango de fechas.
+    Retorna (id_habitacion, numero_habitacion) si existe; None si no existe.
     """
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT COUNT(*) 
-        FROM reserva 
-        WHERE id_habitacion = ? 
-        AND (fecha_ingreso < ? AND fecha_salida > ?)
-    """, (id_habitacion, fecha_salida, fecha_ingreso))
-    count = cursor.fetchone()[0]
-    conn.close()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id_habitacion, numero_habitacion
+        FROM habitacion
+        WHERE numero_habitacion = ?
+    """, (numero_habitacion,))
+    return cur.fetchone()
+
+def listar_numeros_habitacion(conn):
+    """
+    Retorna lista de strings con los números de habitación disponibles: ['H001', 'H002', ...]
+    """
+    cur = conn.cursor()
+    cur.execute("SELECT numero_habitacion FROM habitacion ORDER BY numero_habitacion ASC")
+    return [row[0] for row in cur.fetchall()]
+
+def validar_disponibilidad(conn, id_habitacion: int, fecha_inicio: str, fecha_fin: str):
+    """
+    Verifica si la habitación está libre en el rango de fechas.
+    Retorna True si no hay reservas que se solapen.
+    """
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT COUNT(*)
+        FROM reserva
+        WHERE id_habitacion = ?
+          AND (
+                (fecha_inicio <= ? AND fecha_fin >= ?) OR
+                (fecha_inicio <= ? AND fecha_fin >= ?) OR
+                (? <= fecha_inicio AND ? >= fecha_fin)
+              )
+    """, (id_habitacion, fecha_inicio, fecha_inicio,
+          fecha_fin, fecha_fin,
+          fecha_inicio, fecha_fin))
+    count = cur.fetchone()[0]
     return count == 0

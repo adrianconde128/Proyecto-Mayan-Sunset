@@ -1,5 +1,16 @@
 from datetime import datetime
 import hotel_db
+import re
+
+# =========================
+# Constantes de validación
+# =========================
+HABITACION_REGEX = re.compile(r"^H\d{3}$")  # Formato: H seguido de 3 dígitos
+
+MAX_NOMBRE = 25         # límite 25 caracteres
+MAX_APELLIDO = 25       # límite 25 caracteres
+MAX_DPI = 13            # máximo 13 dígitos
+MAX_NIT = 11            # máximo 11 dígitos (sin verificador K)
 
 # =========================
 # Funciones de negocio
@@ -54,6 +65,42 @@ def crear_reserva(datos):
         total
     )
     return True, f"Reserva creada con éxito. Total: {total:.2f}"
+
+# Métodos de validación dentro de la clase Hotel
+
+def _validar_numero_habitacion(self, numero_habitacion: str):
+    if not numero_habitacion or not HABITACION_REGEX.match(numero_habitacion):
+        # Mensaje solicitado textualmente
+        raise ValueError("Número de habitación invalido")
+
+def _validar_nombre(self, valor: str, etiqueta: str):
+    if valor is None:
+        valor = ""
+    if len(valor) > MAX_NOMBRE:
+        raise ValueError(f"{etiqueta} supera {MAX_NOMBRE} caracteres")
+
+def _validar_apellido(self, valor: str, etiqueta: str):
+    if valor is None:
+        valor = ""
+    if len(valor) > MAX_APELLIDO:
+        raise ValueError(f"{etiqueta} supera {MAX_APELLIDO} caracteres")
+
+def _validar_dpi(self, dpi: str):
+    if dpi is None:
+        dpi = ""
+    if not dpi.isdigit():
+        raise ValueError("DPI debe ser numérico")
+    if len(dpi) > MAX_DPI:
+        raise ValueError(f"DPI supera {MAX_DPI} dígitos")
+
+def _validar_nit(self, nit: str):
+    if nit is None:
+        nit = ""
+    if not nit.isdigit():
+        raise ValueError("NIT debe ser numérico")
+    if len(nit) > MAX_NIT:
+        raise ValueError(f"NIT supera {MAX_NIT} dígitos")
+
 
 # =========================
 # Inicialización de la BD
