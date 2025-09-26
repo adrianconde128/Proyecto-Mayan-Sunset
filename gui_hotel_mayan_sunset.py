@@ -1,8 +1,9 @@
 import Hotel  # Capa de negocio (valida, calcula y orquesta llamadas a hotel_db)
 from pathlib import Path
-from tkinter import Tk, Canvas, Entry, Button, PhotoImage, messagebox, ttk
+from tkinter import Tk, Canvas, Entry, Button, PhotoImage, messagebox, ttk, StringVar
 import re
 from datetime import datetime
+from hotel_db import listar_numeros_habitacion, get_connection as get_conn
 
 OUTPUT_PATH = Path(__file__).parent
 ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\Usua\OneDrive\Desktop\Proyecto Mayan Sunset\gui_mayan_sunset\build\assets\frame0")
@@ -229,41 +230,46 @@ combo_tipo_habitacion.place(
     height=33.0
 )
 
-# Label ID Habitación
+# Label Número de Habitación
 inner_canvas.create_text(
     632.0,
     755.0,
     anchor="nw",
-    text="ID Habitación",
+    text="Número de Habitación",
     fill="#FFFFFF",
     font=("Lato Regular", 20 * -1)
 )
 
-# entry_3 -> ID Habitación
+# Combobox -> Número de Habitación
 entry_image_3 = PhotoImage(file=relative_to_assets("entry_3.png"))
 entry_bg_3 = inner_canvas.create_image(
     754.5,
     804.5,
     image=entry_image_3
 )
-entry_3 = Entry(
+
+numero_hab_var = StringVar()
+combo_numero_hab = ttk.Combobox(
     inner_canvas,
-    bd=0,
-    bg="#D9D9D9",
-    fg="#000716",
-    highlightthickness=0
+    textvariable=numero_hab_var,
+    values=[],  # se llenará desde DB
+    state="readonly"
 )
-entry_3.place(
+combo_numero_hab.place(
     x=642.0,
     y=787.0,
     width=225.0,
     height=33.0
 )
 
-entry_3.config(
-    validate="key",
-    validatecommand=(vcmd_num, "%S")
-)   # Validación de restricción ID Habitación
+def cargar_numeros_habitacion():
+    with get_conn() as conn:
+        combo_numero_hab["values"] = listar_numeros_habitacion(conn)
+    if combo_numero_hab["values"]:
+        combo_numero_hab.current(0)
+
+# Llamar al cargar números al inicio
+cargar_numeros_habitacion()
 
 # Label Estado
 inner_canvas.create_text(
@@ -634,7 +640,7 @@ cargar_tipos_habitacion()
 # =========================
 
 def guardar_reserva():
-    id_habitacion = entry_3.get().strip()
+    numero_habitacion = combo_numero_hab.get().strip()
     tipo = combo_tipo_habitacion.get().strip()
     fecha_ingreso = entry_6.get().strip()
     fecha_salida = entry_5.get().strip()
@@ -646,10 +652,7 @@ def guardar_reserva():
     segundo_apellido = entry_9.get().strip()
     precio_total = entry_1.get().strip()
 
-    # Validaciones
-    if not id_habitacion.isdigit():
-        messagebox.showerror("Error", "El ID de habitación debe ser numérico.")
-        return
+    # Validaciones básicas
     if not tipo:
         messagebox.showerror("Error", "Debe seleccionar un tipo de habitación.")
         return
@@ -669,7 +672,7 @@ def guardar_reserva():
     # Preparar datos para la capa de negocio
     datos = {
         "id_huesped": 1,  # 🔹 Ajustar cuando tengas gestión de huéspedes
-        "id_habitacion": int(id_habitacion),
+        "numero_habitacion": numero_habitacion,  # Usar número de habitación,
         "tipo": tipo,
         "fecha_ingreso": fecha_ingreso,
         "fecha_salida": fecha_salida
@@ -680,7 +683,7 @@ def guardar_reserva():
     if exito:
         resumen = (
             f"Reserva creada con éxito:\n\n"
-            f"Habitación ID: {id_habitacion}\n"
+            f"Habitación ID: {numero_habitacion}\n"
             f"Tipo: {tipo}\n"
             f"Fecha ingreso: {fecha_ingreso}\n"
             f"Fecha salida: {fecha_salida}\n"

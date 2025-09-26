@@ -161,7 +161,7 @@ def seed_data():
 
             try:
                 cursor.execute("""
-                INSERT INTO reserva (id_huesped, dpi_huesped, id_habitacion, numero_habitacion, estado_reserva, fecha_ingreso, fecha_salida, precio_total)
+                INSERT OR IGNORE INTO reserva (id_huesped, dpi_huesped, id_habitacion, numero_habitacion, estado_reserva, fecha_ingreso, fecha_salida, precio_total)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
                 """, (id_huesped, dpi, id_habitacion, num_hab, estado, ingreso, salida, precio_total))
             except sqlite3.IntegrityError as e:
@@ -198,17 +198,17 @@ def insert_huesped(nombre, apellido, dpi, nit):
 def insert_reserva(conn, id_habitacion: int, dpi: str, nit: str,
                      primer_nombre: str, segundo_nombre: str,
                      primer_apellido: str, segundo_apellido: str,
-                     fecha_inicio: str, fecha_fin: str):
+                     fecha_ingreso: str, fecha_salida: str):
     """
     Inserta una reserva y retorna el id generado.
     """
     cur = conn.cursor()
     cur.execute("""
         INSERT INTO reserva (id_habitacion, dpi, nit, primer_nombre, segundo_nombre,
-                             primer_apellido, segundo_apellido, fecha_inicio, fecha_fin)
+                             primer_apellido, segundo_apellido, fecha_ingreso, fecha_salida)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (id_habitacion, dpi, nit, primer_nombre, segundo_nombre,
-          primer_apellido, segundo_apellido, fecha_inicio, fecha_fin))
+          primer_apellido, segundo_apellido, fecha_ingreso, fecha_salida))
     conn.commit()
     return cur.lastrowid
 
@@ -259,7 +259,7 @@ def listar_numeros_habitacion(conn):
     cur.execute("SELECT numero_habitacion FROM habitacion ORDER BY numero_habitacion ASC")
     return [row[0] for row in cur.fetchall()]
 
-def validar_disponibilidad(conn, id_habitacion: int, fecha_inicio: str, fecha_fin: str):
+def validar_disponibilidad(conn, id_habitacion: int, fecha_ingreso: str, fecha_salida: str):
     """
     Verifica si la habitación está libre en el rango de fechas.
     Retorna True si no hay reservas que se solapen.
@@ -270,12 +270,12 @@ def validar_disponibilidad(conn, id_habitacion: int, fecha_inicio: str, fecha_fi
         FROM reserva
         WHERE id_habitacion = ?
           AND (
-                (fecha_inicio <= ? AND fecha_fin >= ?) OR
-                (fecha_inicio <= ? AND fecha_fin >= ?) OR
-                (? <= fecha_inicio AND ? >= fecha_fin)
+                (fecha_ingreso <= ? AND fecha_salida >= ?) OR
+                (fecha_ingreso <= ? AND fecha_salida >= ?) OR
+                (? <= fecha_ingreso AND ? >= fecha_salida)
               )
-    """, (id_habitacion, fecha_inicio, fecha_inicio,
-          fecha_fin, fecha_fin,
-          fecha_inicio, fecha_fin))
+    """, (id_habitacion, fecha_ingreso, fecha_ingreso,
+          fecha_salida, fecha_salida,
+          fecha_ingreso, fecha_salida))
     count = cur.fetchone()[0]
     return count == 0
