@@ -72,35 +72,14 @@ class VentanaMenu(tk.Toplevel):
         lbl_pie = ttk.Label(frm, text="Mayan Sunset ©", font=("Segoe UI", 9))
         lbl_pie.pack(side="bottom", pady=(12, 0))
 
+    # gui_menu.py (dentro de VentanaMenu)
     def _abrir_reservaciones(self):
-        """
-        Abre el formulario existente gui_hotel_mayan_sunset.py.
-        Se intenta importar el módulo y llamar a una función/ventana conocida.
-        """
         try:
-            # Se espera que el archivo exista en el mismo entorno de Python.
-            # Opciones de integración:
-            # - gui_hotel_mayan_sunset.show_reservations(self.root)
-            # - gui_hotel_mayan_sunset.VentanaReservaciones(self.root)
-            import gui_hotel_mayan_sunset as reservas_mod
+            from gui_hotel_mayan_sunset import VentanaReservaciones
+            VentanaReservaciones(self.root)
+        except Exception as e:
+            messagebox.showerror("Error al abrir Reservaciones", str(e))
 
-            if hasattr(reservas_mod, "show_reservations"):
-                reservas_mod.show_reservations(self.root)
-            elif hasattr(reservas_mod, "VentanaReservaciones"):
-                # Instancia como Toplevel
-                reservas_mod.VentanaReservaciones(self.root)
-            else:
-                messagebox.showwarning(
-                    "Integración pendiente",
-                    "El módulo de reservaciones no expone show_reservations ni VentanaReservaciones.\n\n"
-                    "TODO: Ajuste el punto de integración según su implementación."
-                )
-        except ImportError:
-            messagebox.showerror(
-                "Módulo no encontrado",
-                "No se encontró 'gui_hotel_mayan_sunset.py'.\n\n"
-                "TODO: Coloque el archivo en el mismo directorio o ajuste el import."
-            )
 
     def _restaurante_todo(self):
         # TODO: Implementar formulario del restaurante
