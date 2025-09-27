@@ -40,7 +40,12 @@ class RestauranteDB:
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        self.close()
+        # Si hubo excepción, revertir cambios
+        if exc_type:
+            if self.conn:
+                self.conn.rollback()
+        # mportante: NO cerrar la conexión aquí
+        # La conexión se cierra explícitamente con self.close()
 
     # --- Esquema y datos iniciales ---
 

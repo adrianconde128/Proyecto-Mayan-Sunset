@@ -11,6 +11,21 @@ class VentanaMenu(tk.Toplevel):
     - Botones: Reservaciones, Restaurante (TODO), Hotel (TODO), Reportes (TODO).
     - Botón Gestión de Usuarios visible solo para Administrador (TODO).
     """
+    def _abrir_restaurante(self):
+        try:
+            from restaurante_gui import VentanaRestaurante
+            # Crear un Toplevel hijo de la ventana principal
+            win = tk.Toplevel(self.root)
+            VentanaRestaurante(win)
+        except ImportError:
+            messagebox.showerror(
+                "Módulo no encontrado",
+                "No se encontró 'restaurante_gui.py'."
+            )
+        except Exception as e:
+            messagebox.showerror("Error", f"Ocurrió un problema al abrir Restaurante:\n{e}")
+
+
     def __init__(self, root: tk.Tk, datos_usuario: dict):
         super().__init__(root)
         self.root = root
@@ -48,8 +63,13 @@ class VentanaMenu(tk.Toplevel):
         btn_reservaciones.grid(row=0, column=0, padx=8, pady=8, sticky="ew")
 
         # Restaurante (TODO)
-        btn_restaurante = ttk.Button(cont_botones, text="Restaurante", command=self._restaurante_todo)
+        btn_restaurante = ttk.Button(
+        cont_botones,
+        text="Restaurante",
+        command=self._abrir_restaurante
+        )
         btn_restaurante.grid(row=0, column=1, padx=8, pady=8, sticky="ew")
+
 
         # Hotel (TODO)
         btn_hotel = ttk.Button(cont_botones, text="Hotel", command=self._hotel_todo)

@@ -5,15 +5,15 @@ def run_tests():
 
     # Caso 1: Reserva válida
     exito, mensaje = Hotel.crear_reserva({
-        "numero_habitacion": "H107",
+        "numero_habitacion": "H115",
         "dpi": "1234567890123",
         "nit": "12345678901",
         "primer_nombre": "Carlos",
         "segundo_nombre": "Eduardo",
         "primer_apellido": "Pérez",
         "segundo_apellido": "Garcia",
-        "fecha_ingreso": "2025-11-01",
-        "fecha_salida": "2025-11-05",
+        "fecha_ingreso": "2025-11-10",
+        "fecha_salida": "2025-11-15",
         "id_huesped": 1,
         "tipo": "Individual"
     })

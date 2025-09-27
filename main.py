@@ -1,4 +1,4 @@
-# main.py
+# main.pyus
 # Punto de entrada de la aplicación.
 # Inicia la raíz de Tkinter, prepara la base de datos y muestra la ventana de login.
 
