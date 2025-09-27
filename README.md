@@ -34,3 +34,12 @@ El código está diseñado para normalizar (convertir a minúsculas) cualquier e
 1. Ejecute el programa principal desde la terminal:  
    ```bash
    python main.py
+2. En la pantalla de login, ingrese un **usuario** y una **contraseña** que ya existan en la tabla `Usuario`.
+
+3. Al validar correctamente, la ventana de login se cerrará y se abrirá la ventana del menú principal.
+
+### Comportamiento del Menú 🚪
+
+- El botón **"Gestión de Usuarios"** solo será visible si el `tipo_usuario` del usuario logueado es **`"administrador"`**.
+- El botón de **"Reservaciones"** intentará importar el archivo `gui_hotel_mayan_sunset.py` y abrir su formulario.  
+  Hay comentarios `TODO` en el código para que pueda adaptar este punto de integración a su implementación específica.
