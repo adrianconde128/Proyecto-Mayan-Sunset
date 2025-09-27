@@ -80,92 +80,91 @@ def obtener_tipos_habitacion():
 def obtener_precio_por_tipo(tipo):
     return hotel_db.get_precio_por_tipo(tipo)
 
+# Hotel.py
+# Hotel.py
 def crear_reserva(datos):
     """
-    datos = {
-        "id_huesped": int,
-        "id_habitacion": int,           # opcional si se provee "numero_habitacion"
-        "numero_habitacion": "HNNN",    # nuevo campo opcional (formato H001, H002, ...)
-        "fecha_ingreso": "YYYY-MM-DD",
-        "fecha_salida": "YYYY-MM-DD",
-        "tipo": str,                    # tipo de habitación para precio
-        "dpi": str,                     # opcional; validado si presente
-        "nit": str,                     # opcional; validado si presente
-        "primer_nombre": str,           # opcional; validado si presente
-        "segundo_nombre": str,          # opcional; validado si presente
-        "primer_apellido": str,         # opcional; validado si presente
-        "segundo_apellido": str         # opcional; validado si presente
-    }
+    datos esperados (mínimos):
+        - numero_habitacion: str (ej. 'H107')  [requerido]
+        - fecha_ingreso: 'YYYY-MM-DD'
+        - fecha_salida: 'YYYY-MM-DD'
+        - dpi: str  (para identificar/crear huésped)
+        - primer_nombre, primer_apellido: str
+        - segundo_nombre, segundo_apellido: str (opcionales)
+        - nit: str (opcional)
     """
-    # =========================
-    # Validaciones de fechas
-    # =========================
+    # 1) Validación de fechas y cálculo de noches
     noches = calcular_noches(datos["fecha_ingreso"], datos["fecha_salida"])
     if noches is None:
         return False, "Fechas inválidas"
 
-    # =========================
-    # Soporte de numero_habitacion a id_habitacion
-    # =========================
-    # Si viene el número de habitación (preferido en GUI), validar y mapear a ID.
-    with hotel_db.get_connection() as conn:
-        id_habitacion = datos.get("id_habitacion")
-        if "numero_habitacion" in datos and datos["numero_habitacion"]:
-            numero = str(datos["numero_habitacion"]).strip()
-            validar_numero_habitacion(numero)
-            # Obtener la habitación por número
-            hab = hotel_db.get_habitacion_por_numero(conn, numero)
-            if not hab:
-                # Mensaje exacto solicitado
-                return False, "Número de habitación invalido"
-            # Asumimos que la función retorna (id_habitacion, numero_habitacion) o un row con id en índice 0
-            id_habitacion = hab[0]
-            # Mantener compatibilidad con el resto del flujo
-            datos["id_habitacion"] = id_habitacion
+    # 2) Validación de numero_habitacion (obligatorio)
+    numero_habitacion = datos.get("numero_habitacion", "").strip()
+    if not numero_habitacion:
+        return False, "Número de habitación invalido"
+    validar_numero_habitacion(numero_habitacion)
 
-        # Validación si no se logró establecer id_habitacion
-        if not id_habitacion:
+    with hotel_db.get_connection() as conn:
+        # 3) Obtener habitación por número (id, tipo, precio, estado)
+        hab = hotel_db.get_habitacion_por_numero(conn, numero_habitacion)
+        if not hab:
             return False, "Número de habitación invalido"
 
-        # =========================
-        # Validaciones de identidad opcionales
-        # =========================
-        # Se validan solo si las llaves existen en 'datos'.
+        # Orden esperado: (id_habitacion, numero_habitacion, tipo, precio_por_noche, estado)
+        id_habitacion = hab[0]
+        numero_habitacion = hab[1]
+        precio_por_noche = float(hab[3])
+
+        # 4) Validaciones de identidad (nombres y DPI/NIT)
         try:
-            validar_nombres_apellidos(datos)
-            validar_dpi_nit(datos)
+            validar_nombres_apellidos(datos)  # requiere: primer_/segundo_ nombre/apellido
+            validar_dpi_nit(datos)            # requiere: dpi, nit
         except ValueError as ve:
             return False, str(ve)
 
-        # =========================
-        # Disponibilidad antes de insertar
-        # =========================
+        # 5) Resolver id_huesped (buscar por DPI; crear si no existe)
+        huesped = hotel_db.get_huesped_por_dpi(conn, datos["dpi"])
+        if huesped:
+            id_huesped = huesped[0]  # id_huesped
+        else:
+            # Inserta huésped con argumentos POSICIONALES (evita kwargs)
+            id_huesped = hotel_db.insert_huesped(
+                conn,
+                datos["dpi"],
+                datos["primer_nombre"],
+                datos.get("segundo_nombre", ""),
+                datos["primer_apellido"],
+                datos.get("segundo_apellido", ""),
+                datos.get("nit", None)
+            )
+
+        # 6) Validar disponibilidad por fechas (usa id_habitacion + fechas reales)
         disponible = hotel_db.validar_disponibilidad(
-            conn, datos["id_habitacion"], datos["fecha_ingreso"], datos["fecha_salida"]
+            conn, id_habitacion, datos["fecha_ingreso"], datos["fecha_salida"]
         )
         if not disponible:
             return False, "Habitación no disponible"
 
-        # =========================
-        # Precio por tipo y cálculo total
-        # =========================
-        precio_noche = hotel_db.get_precio_por_tipo(datos["tipo"])
-        if precio_noche is None:
-            return False, "Tipo de habitación no encontrado"
+        # 7) Calcular precio total
+        total = noches * precio_por_noche
 
-        total = noches * precio_noche
+        # 8) Estado de la reserva
+        estado_reserva = "Confirmada"  # ajusta según tu flujo
 
-        # =========================
-        # Inserción
-        # =========================
-        hotel_db.insert_reserva(
-            datos["id_huesped"],
-            datos["id_habitacion"],
+        # 9) Insertar reserva acorde al esquema actual de la tabla 'reserva'
+        reserva_id = hotel_db.insert_reserva(
+            conn,
+            id_huesped,
+            datos["dpi"],             # dpi_huesped
+            id_habitacion,
+            numero_habitacion,
+            estado_reserva,
             datos["fecha_ingreso"],
             datos["fecha_salida"],
             total
-    )
-    return True, f"Reserva creada con éxito. Total: {total:.2f}"
+        )
+
+    return True, f"Reserva creada con éxito (ID: {reserva_id}). Total: {total:.2f}"
 
 # =========================
 # Inicialización de la BD

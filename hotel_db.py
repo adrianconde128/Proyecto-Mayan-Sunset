@@ -185,30 +185,47 @@ def insert_habitacion(tipo, precio, estado):
     conn.commit()
     conn.close()
 
-def insert_huesped(nombre, apellido, dpi, nit):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO huesped (nombre, apellido, dpi, nit) VALUES (?, ?, ?, ?);",
-        (nombre, apellido, dpi, nit)
-    )
-    conn.commit()
-    conn.close()
-
-def insert_reserva(conn, id_habitacion: int, dpi: str, nit: str,
-                     primer_nombre: str, segundo_nombre: str,
-                     primer_apellido: str, segundo_apellido: str,
-                     fecha_ingreso: str, fecha_salida: str):
+def insert_huesped(conn,
+                   dpi: str,
+                   primer_nombre: str,
+                   segundo_nombre: str = "",
+                   primer_apellido: str = "",
+                   segundo_apellido: str = "",
+                   nit: str = None):
     """
-    Inserta una reserva y retorna el id generado.
+    Inserta un huésped y retorna el id generado.
+    Firma posicional compatible con la llamada desde crear_reserva.
     """
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO reserva (id_habitacion, dpi, nit, primer_nombre, segundo_nombre,
-                             primer_apellido, segundo_apellido, fecha_ingreso, fecha_salida)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (id_habitacion, dpi, nit, primer_nombre, segundo_nombre,
-          primer_apellido, segundo_apellido, fecha_ingreso, fecha_salida))
+        INSERT INTO huesped (dpi, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, nit)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (dpi, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, nit))
+    conn.commit()
+    return cur.lastrowid
+
+
+def insert_reserva(conn,
+                   id_huesped: int,
+                   dpi_huesped: str,
+                   id_habitacion: int,
+                   numero_habitacion: str,
+                   estado_reserva: str,
+                   fecha_ingreso: str,
+                   fecha_salida: str,
+                   precio_total: float):
+    """
+    Inserta una reserva y retorna el id generado, acorde al esquema actual.
+    """
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO reserva (
+            id_huesped, dpi_huesped, id_habitacion, numero_habitacion,
+            estado_reserva, fecha_ingreso, fecha_salida, precio_total
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (id_huesped, dpi_huesped, id_habitacion, numero_habitacion,
+          estado_reserva, fecha_ingreso, fecha_salida, precio_total))
     conn.commit()
     return cur.lastrowid
 
@@ -241,15 +258,22 @@ def get_estado_habitacion(id_habitacion):
 
 def get_habitacion_por_numero(conn, numero_habitacion: str):
     """
-    Retorna (id_habitacion, numero_habitacion) si existe; None si no existe.
+    Retorna una tupla (id_habitacion, numero_habitacion, tipo, precio_por_noche, estado)
+    para el numero_habitacion dado, o None si no existe.
     """
     cur = conn.cursor()
     cur.execute("""
-        SELECT id_habitacion, numero_habitacion
+        SELECT
+            id_habitacion,
+            numero_habitacion,
+            tipo,
+            precio_por_noche,
+            estado
         FROM habitacion
         WHERE numero_habitacion = ?
     """, (numero_habitacion,))
     return cur.fetchone()
+
 
 def listar_numeros_habitacion(conn):
     """
@@ -279,3 +303,19 @@ def validar_disponibilidad(conn, id_habitacion: int, fecha_ingreso: str, fecha_s
           fecha_ingreso, fecha_salida))
     count = cur.fetchone()[0]
     return count == 0
+
+def get_huesped_por_dpi(conn, dpi: str):
+    """
+    Retorna una tupla con:
+    (id_huesped, dpi, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, nit)
+    o None si no existe.
+    """
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id_huesped, dpi, primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, nit
+        FROM huesped
+        WHERE dpi = ?
+    """, (dpi,))
+    return cur.fetchone()
+
+
